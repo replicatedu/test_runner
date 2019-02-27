@@ -12,12 +12,6 @@ struct Test{
     execution: String,
 }
 
-#[derive(Deserialize)]
-struct FileTest {
-    execution_arguments: String,
-    solution_output_file: String,
-    student_output_file: String,
-}
 
 #[derive(Deserialize)]
 struct StdioTest {
@@ -26,14 +20,8 @@ struct StdioTest {
     expected_stdout: String,
 }
 
-#[derive(Deserialize)]
-struct CustomTest {
-    execution_arguments: String,
-    evaluation_command: String,
-}
-
 //cargo test -- -Z unstable-options --format=json
-
+//https://github.com/servo/html5ever/blob/master/html5ever/tests/tokenizer.rs
 macro_rules! fib_tests {
     ($($name:ident: $value:expr,)*) => {
     $(
@@ -46,12 +34,3 @@ macro_rules! fib_tests {
     }
 }
 
-fn eqq(v1:u32,v2:u32)-> bool {
-    v1 == v2
-}
-
-fib_tests! {
-    fib_0: (eqq, 0, 0),
-    fib_1: (eqq, 0, 1),
-    fib_2: (eqq, 0, 0),
- }
