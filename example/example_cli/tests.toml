@@ -1,0 +1,17 @@
+compilation="cargo build --release"
+execution="cargo run "
+solution_dir=""
+student_dir=""
+
+[FileTest]
+execution_arguments = 'file file1 file2'
+student_ = 'solution_file1 solution_file2'
+
+[CustomTest]
+execution_arguments = 'custom' 
+evaluation_command = 'cargo test'
+
+[StdinTest]
+execution_arguments = 'stdin'
+stdin = 'hello' 
+expected_stdout = 'hello'
