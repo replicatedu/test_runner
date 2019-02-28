@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/replicatedu/replicatEdu_lib_skeleton-parser.svg?branch=master)](https://travis-ci.org/replicatedu/replicatEdu_lib_skeleton-parser) [![codecov](https://codecov.io/gh/replicatedu/replicatEdu_lib_skeleton-parser/branch/master/graph/badge.svg)](https://codecov.io/gh/replicatedu/replicatEdu_lib_skeleton-parser)
+[![Build Status](https://travis-ci.org/replicatedu/replicatEdu_lib_skeleton-parser.svg?branch=master)](https://travis-ci.org/replicatedu/replicatEdu_lib_skeleton-parser) [![codecov](https://codecov.io/gh/replicatedu/replicatEdu_lib_skeleton-parser/branch/master/graph/badge.svg)](https://codecov.io/gh/replicatedu/replicatEdu_lib_skeleton-parser)[![Open in Gitpod](http://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io#https://github.com/replicatedu/test_runner/)
 
 # replicatEdu test_runner
 This is a crate that will specify an automated test format and test runner to be used in replicatEdu 
