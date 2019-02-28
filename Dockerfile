@@ -1,1 +1,1 @@
-FROM rustlang:rust
+FROM rust
