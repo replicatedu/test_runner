@@ -1,35 +1,231 @@
-use std::io::{BufRead, BufReader, BufWriter, Write};
-use std::process::{Command, Stdio};
+use std::env;
+use std::error;
+use std::ffi::OsStr;
+use std::fs::{self, File};
+use std::io::{self, Write};
+use std::path::{Path, PathBuf};
+use std::process::{self, Command};
+use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
+use std::thread;
+use std::time::Duration;
 
-fn main() {
-    let mut the_process = Command::new("echo")//.arg("foo")
-        .spawn().ok().expect("Failed to execute.");
-    // Get a Pipestream which implements the writer trait.
-    // Scope, to ensure the borrow ends.
-    let _ = {
-        let the_stdin_stream = the_process.stdin.as_mut()
-            .expect("Couldn't get mutable Pipestream.");
-        // Write to it in binary.
-        the_stdin_stream.write(b"tests")
-            .ok().expect("Couldn't write to stream.");
-        the_stdin_stream.write(b"Foo this, foo that!")
-            .ok().expect("Couldn't write to stream.");
-        // Flush the output so it ends.
-        the_stdin_stream.flush()
-            .ok().expect("Couldn't flush the stream.");
+#[macro_export]
+macro_rules! cmdtest {
+    ($name:ident, $cmd:expr, $fun:expr) => {
+        #[test]
+        fn $name() {
+            let command = Command::new($cmd);
+            let mut cmd = TestCommand {
+                dir: "".to_string(),
+                cmd: command,
+            };
+            $fun(cmd);
+        }
     };
-    // Wait on output.
-    match the_process.wait_with_output() {
-        Ok(out)    => print!("{:?}", out),
-        Err(error) => print!("{}", error)
+}
+
+#[macro_export]
+macro_rules! eqnice {
+    ($expected:expr, $got:expr) => {
+        let expected = &*$expected;
+        let got = &*$got;
+        if expected != got {
+            panic!(
+                "
+printed outputs differ!
+expected:
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+{}
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+got:
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+{}
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+",
+                expected, got
+            );
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! eqnice_repr {
+    ($expected:expr, $got:expr) => {
+        let expected = &*$expected;
+        let got = &*$got;
+        if expected != got {
+            panic!(
+                "
+printed outputs differ!
+expected:
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+{:?}
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+got:
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+{:?}
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+",
+                expected, got
+            );
+        }
+    };
+}
+
+/// A simple wrapper around a process::Command with some verification conveniences.
+/// this was heavily influenced by the excellent rust writer: BurntSushi
+/// https://github.com/BurntSushi/ripgrep/blob/7a6a40bae18f89bcfc6997479d7202d2c098e964/tests/util.rs
+#[derive(Debug)]
+pub struct TestCommand {
+    /// The dir used to launched this command.
+    dir: String,
+    /// The actual command we use to control the process.
+    cmd: Command,
+}
+
+impl TestCommand {
+    /// Returns a mutable reference to the underlying command.
+    pub fn cmd(&mut self) -> &mut Command {
+        &mut self.cmd
     }
 
-    // let output = Command::new("ls").arg("-aFl").output().unwrap().stdout;
-    // let output = String::from_utf8_lossy(&output);
-    // println!("First program output: {:?}", output);
-    // let put_command = Command::new("echo")
-    //     .stdin(Stdio::piped())
-    //     .spawn()
-    //     .unwrap();
-    // write!(put_command.stdin.unwrap(), "{}", output).unwrap();
+    /// Add an argument to pass to the command.
+    pub fn arg<A: AsRef<OsStr>>(&mut self, arg: A) -> &mut TestCommand {
+        self.cmd.arg(arg);
+        self
+    }
+
+    /// Add any number of arguments to the command.
+    pub fn args<I, A>(&mut self, args: I) -> &mut TestCommand
+    where
+        I: IntoIterator<Item = A>,
+        A: AsRef<OsStr>,
+    {
+        self.cmd.args(args);
+        self
+    }
+
+    /// Set the working directory for this command.
+    ///
+    /// Note that this does not need to be called normally, since the creation
+    /// of this TestCommand causes its working directory to be set to the
+    /// test's directory automatically.
+    pub fn current_dir<P: AsRef<Path>>(&mut self, dir: P) -> &mut TestCommand {
+        self.cmd.current_dir(dir);
+        self
+    }
+
+    /// Runs and captures the stdout of the given command.
+    pub fn stdout(&mut self) -> String {
+        let o = self.output();
+        let stdout = String::from_utf8_lossy(&o.stdout);
+        match stdout.parse() {
+            Ok(t) => t,
+            Err(err) => {
+                panic!("could not convert from string: {:?}\n\n{}", err, stdout);
+            }
+        }
+    }
+
+    /// Gets the output of a command. If the command failed, then this panics.
+    pub fn output(&mut self) -> process::Output {
+        let output = self.cmd.output().unwrap();
+        self.expect_success(output)
+    }
+
+    /// Runs the command and asserts that it resulted in an error exit code.
+    pub fn assert_err(&mut self) {
+        let o = self.cmd.output().unwrap();
+        if o.status.success() {
+            panic!(
+                "\n\n===== {:?} =====\n\
+                 command succeeded but expected failure!\
+                 \n\ncwd: {}\
+                 \n\nstatus: {}\
+                 \n\nstdout: {}\n\nstderr: {}\
+                 \n\n=====\n",
+                self.cmd,
+                self.dir,
+                o.status,
+                String::from_utf8_lossy(&o.stdout),
+                String::from_utf8_lossy(&o.stderr)
+            );
+        }
+    }
+
+    /// Runs the command and asserts that its exit code matches expected exit
+    /// code.
+    pub fn assert_exit_code(&mut self, expected_code: i32) {
+        let code = self.cmd.output().unwrap().status.code().unwrap();
+        assert_eq!(
+            expected_code, code,
+            "\n\n===== {:?} =====\n\
+             expected exit code did not match\
+             \n\nexpected: {}\
+             \n\nfound: {}\
+             \n\n=====\n",
+            self.cmd, expected_code, code
+        );
+    }
+
+    /// Runs the command and asserts that something was printed to stderr.
+    pub fn assert_non_empty_stderr(&mut self) {
+        let o = self.cmd.output().unwrap();
+        if o.status.success() || o.stderr.is_empty() {
+            panic!(
+                "\n\n===== {:?} =====\n\
+                 command succeeded but expected failure!\
+                 \n\ncwd: {}\
+                 \n\nstatus: {}\
+                 \n\nstdout: {}\n\nstderr: {}\
+                 \n\n=====\n",
+                self.cmd,
+                self.dir,
+                o.status,
+                String::from_utf8_lossy(&o.stdout),
+                String::from_utf8_lossy(&o.stderr)
+            );
+        }
+    }
+
+    fn expect_success(&self, o: process::Output) -> process::Output {
+        if !o.status.success() {
+            let suggest = if o.stderr.is_empty() {
+                "\n\nDid your search end up with no results?".to_string()
+            } else {
+                "".to_string()
+            };
+
+            panic!(
+                "\n\n==========\n\
+                 command failed but expected success!\
+                 {}\
+                 \n\ncommand: {:?}\
+                 \ncwd: {}\
+                 \n\nstatus: {}\
+                 \n\nstdout: {}\
+                 \n\nstderr: {}\
+                 \n\n==========\n",
+                suggest,
+                self.cmd,
+                self.dir,
+                o.status,
+                String::from_utf8_lossy(&o.stdout),
+                String::from_utf8_lossy(&o.stderr)
+            );
+        }
+        o
+    }
 }
+
+cmdtest!(test_ls, "ls", |mut cmd: TestCommand| {
+    cmd.current_dir("..");
+    let expected = "\
+1:Watson
+1:Sherlock
+2:Holmes
+3:Sherlock Holmes
+5:Watson
+";
+    eqnice!(expected, cmd.stdout());
+});
