@@ -1,3 +1,4 @@
+use rustc_test::*;
 use std::env;
 use std::error;
 use std::ffi::OsStr;
@@ -6,6 +7,7 @@ use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process::{self, Command};
 use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
+use std::sync::mpsc::{channel, Sender};
 use std::thread;
 use std::time::Duration;
 
@@ -229,3 +231,39 @@ cmdtest!(test_ls, "ls", |mut cmd: TestCommand| {
 ";
     eqnice!(expected, cmd.stdout());
 });
+
+fn tester() {
+    fn f() {
+        assert!{false};
+    }
+    let os = TestOpts {
+        filter: None,
+        run_ignored: false,
+        run_tests: true,
+        bench_benchmarks: false,
+        logfile: None,
+        nocapture: true,
+        color: AutoColor,
+        verbose: true,
+    };
+    let desc = TestDescAndFn {
+        desc: TestDesc {
+            name: StaticTestName("whatever"),
+            ignore: false,
+            should_panic: ShouldPanic::No,
+            allow_fail: false,
+        },
+        testfn: DynTestFn(Box::new(move || f())),
+    };
+    let (tx, rx) = channel();
+    run_test(&os, false, desc, tx);
+    let (a, res, c) = rx.recv().unwrap();
+     
+    println!("{:?} {:?}", a, c)
+    //assert!(res == TrIgnored);
+}
+fn main(){
+    tester();
+    tester();
+
+}
