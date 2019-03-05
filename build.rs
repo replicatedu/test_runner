@@ -33,9 +33,7 @@ fn main() {
     let mut f = std::fs::File::create(&destination).unwrap();
 
     write!(f,"
-#[macro_use]
 use test_runner::TestCommand;
-#[macro_use]
 use test_runner::*;
 
 use std::process::{{self, Command}};
@@ -59,7 +57,7 @@ fn {in_name}(){{
 ",
             in_name = p,
             in_command = "ls",
-            in_current_dir = '.',
+            in_current_dir = "../../",
             in_expected = "asdsa"
         ).unwrap();
     }

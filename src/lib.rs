@@ -1,14 +1,7 @@
-use std::env;
-use std::error;
+
 use std::ffi::OsStr;
-use std::fs::{self, File};
-use std::io::{self, Write};
-use std::path::{Path, PathBuf};
+use std::path::{Path};
 use std::process::{self, Command};
-use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
-use std::sync::mpsc::{channel, Sender};
-use std::thread;
-use std::time::Duration;
 
 #[macro_export]
 macro_rules! cmdtest {
