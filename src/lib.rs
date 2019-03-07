@@ -1,6 +1,9 @@
+extern crate difference;
+extern crate term;
 
+use difference::{Changeset, Difference};
 use std::ffi::OsStr;
-use std::path::{Path};
+use std::path::Path;
 use std::process::{self, Command};
 
 #[macro_export]
@@ -23,6 +26,7 @@ macro_rules! eqnice {
     ($expected:expr, $got:expr) => {
         let expected = &*$expected;
         let got = &*$got;
+        print_diff(got, expected);
         if expected != got {
             panic!(
                 "
@@ -35,10 +39,13 @@ got:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 {}
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+diff:
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ",
                 expected, got
             );
         }
+        
     };
 }
 
@@ -64,6 +71,38 @@ got:
             );
         }
     };
+}
+
+pub fn print_diff(got: &str, expected: &str) {
+    let mut t = term::stdout().unwrap();
+    let Changeset { diffs, .. } = Changeset::new(got, expected, "");
+    let mut len_same:usize = 0;
+    let mut len_rem:usize = 0;
+    for i in 0..diffs.len() {
+        match diffs[i] {
+            Difference::Same(ref x) => {
+                t.reset().unwrap();
+                len_same += x.len();
+                writeln!(t, " {}", x);
+            }
+            Difference::Add(ref x) => {
+                t.fg(term::color::GREEN).unwrap();
+                writeln!(t, "+{}", x);
+            }
+            Difference::Rem(ref x) => {
+                t.fg(term::color::RED).unwrap();
+                len_rem += x.len();
+                writeln!(t, "-{}", x);
+            }
+        }
+    } 
+    t.fg(term::color::CYAN).unwrap();
+    let total = len_same+len_rem;
+    let percentage:f64 = len_same as f64 / len_rem as f64 * 100 as f64;
+
+    writeln!(t, "%{} ({}/{})", percentage,len_same,total);
+    t.reset().unwrap();
+    t.flush().unwrap();
 }
 
 /// A simple wrapper around a process::Command with some verification conveniences.
