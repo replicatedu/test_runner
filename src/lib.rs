@@ -26,7 +26,7 @@ macro_rules! eqnice {
     ($expected:expr, $got:expr) => {
         let expected = &*$expected;
         let got = &*$got;
-        print_diff(got, expected);
+        percentage_diff(got, expected);
         if expected != got {
             panic!(
                 "
@@ -73,36 +73,36 @@ got:
     };
 }
 
-pub fn print_diff(got: &str, expected: &str) {
+pub fn percentage_diff(got: &str, expected: &str) -> (f64, String) {
     let mut t = term::stdout().unwrap();
     let Changeset { diffs, .. } = Changeset::new(got, expected, "");
     let mut len_same:usize = 0;
     let mut len_rem:usize = 0;
+    let mut outdiff:String = String::new();
     for i in 0..diffs.len() {
         match diffs[i] {
             Difference::Same(ref x) => {
-                t.reset().unwrap();
                 len_same += x.len();
-                writeln!(t, " {}", x);
+                outdiff.push_str(&format!("={}", x));
             }
             Difference::Add(ref x) => {
-                t.fg(term::color::GREEN).unwrap();
-                writeln!(t, "+{}", x);
+                outdiff.push_str(&format!("+{}", x));
             }
             Difference::Rem(ref x) => {
-                t.fg(term::color::RED).unwrap();
                 len_rem += x.len();
-                writeln!(t, "-{}", x);
+                outdiff.push_str(&format!("-{}", x));
             }
         }
     } 
     t.fg(term::color::CYAN).unwrap();
     let total = len_same+len_rem;
-    let percentage:f64 = len_same as f64 / len_rem as f64 * 100 as f64;
+    let percentage:f64 = len_same as f64 / len_rem as f64 ;
 
-    writeln!(t, "%{} ({}/{})", percentage,len_same,total);
+    writeln!(t, "%{} ({}/{})", percentage,len_same,total).expect("failed to print line");
     t.reset().unwrap();
     t.flush().unwrap();
+
+    (percentage, outdiff)
 }
 
 /// A simple wrapper around a process::Command with some verification conveniences.
@@ -219,6 +219,33 @@ impl TestCommand {
                 String::from_utf8_lossy(&o.stderr)
             );
         }
+    }
+
+    pub fn expect_output_threshold(&mut self, target_threshold: f64, expected:&str) {
+        let o = self.cmd.output().unwrap();
+        let stdout = String::from_utf8_lossy(&o.stdout);
+        let (perc_diff, out) = percentage_diff(&stdout,&expected);
+        if target_threshold > perc_diff {
+             panic!(
+                "\n\n===== {:?} =====\n\
+                 only {} matched expected output, required {}!\
+                 \n\ncwd: {}\
+                 \n\nstatus: {}\
+                 \n\nstdout: {}\n\nstderr: {}\
+                 \n\ndiff:{}\n\
+                 \n\n
+                 \n\n=====\n",
+                self.cmd,
+                perc_diff,
+                target_threshold,
+                self.dir,
+                o.status,
+                String::from_utf8_lossy(&o.stdout),
+                String::from_utf8_lossy(&o.stderr),
+                out
+            );
+        }
+
     }
 
     fn expect_success(&self, o: process::Output) -> process::Output {

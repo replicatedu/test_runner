@@ -50,7 +50,21 @@ fn {in_name}(){{
     ).unwrap();
 }
 
-        
+//generates a test stub for the test string
+fn stdout_test_stub()->String{
+    "
+    let stdout = cmd.stdout();
+    eqnice!(expected,stdout.trim());
+    ".to_string()
+} 
+
+//generates a test stub for the threshold test
+fn threshold_test_stub(threshold:f64)->String{
+    format!("
+    cmd.expect_output_threshold({},expected);
+    ",threshold).to_string()
+} 
+
 fn main() {
     //get the environmental variable for the test directory
     // let folder = env::var("REPLICATED_EDU_TEST_DIR")
@@ -62,11 +76,12 @@ fn main() {
     let destination = std::path::Path::new(&out_dir).join("gen_tests.rs");
     let mut f = std::fs::File::create(&destination).unwrap();
     
-    let test_std_out = "
-    let stdout = cmd.stdout();
-    eqnice!(expected,stdout.trim());
-    ".to_string();
-    
+    let test_std_out = stdout_test_stub();
     write_test_header(&f);
+    
     write_test_to_file(&f,"test_dir","dir","../","hello2",&test_std_out);
+    
+    let test_threshold = threshold_test_stub(0.90);
+    write_test_to_file(&f,"test2_dir","echo hello work","../","hello2",&test_threshold);
+    
 }
