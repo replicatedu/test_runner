@@ -6,6 +6,7 @@ use std::ffi::OsStr;
 use std::path::Path;
 use std::process::{self, Command};
 
+//gets a percentage difference of the test
 pub fn percentage_diff(got: &str, expected: &str) -> (f64, String) {
     let mut t = term::stdout().unwrap();
     let Changeset { diffs, .. } = Changeset::new(got.trim(), expected.trim(), "");
