@@ -1,0 +1,43 @@
+
+test_file_description = "this is a test testfile"
+
+[[test]]
+description = "this is a test to check hello world"
+test_type = "test_assert_err"
+test_directory = "."
+cmd = "echo hello world"
+expected = "hello world"
+points = 10
+
+[[test]]
+description = "this is a test to check hello world"
+test_type = "test_assert_exit_code"
+exit_code = 0
+test_directory = "."
+cmd = "echo hello world"
+expected = "hello world"
+points = 10
+
+[[test]]
+description = "this is a test to check hello world"
+test_type = "test_assert_non_empty_stderr"
+test_directory = "."
+cmd = "echo hello world"
+expected = "hello world"
+points = 10
+
+[[test]]
+description = "this is a test to check hello world"
+test_type = "test_output_is_expected"
+test_directory = "."
+cmd = "echo hello world"
+expected = "hello world"
+points = 10
+
+[[test]]
+description = "this is a test to check hello world"
+test_type = "test_output_is_expected"
+test_directory = "."
+cmd = "echo hello world"
+expected = "hello world"
+points = 10
