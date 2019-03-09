@@ -6,76 +6,9 @@ use std::ffi::OsStr;
 use std::path::Path;
 use std::process::{self, Command};
 
-#[macro_export]
-macro_rules! cmdtest {
-    ($name:ident, $cmd:expr, $fun:expr) => {
-        #[test]
-        fn $name() {
-            let command = Command::new($cmd);
-            let mut cmd = TestCommand {
-                dir: "".to_string(),
-                cmd: command,
-            };
-            $fun(cmd);
-        }
-    };
-}
-
-#[macro_export]
-macro_rules! eqnice {
-    ($expected:expr, $got:expr) => {
-        let expected = &*$expected;
-        let got = &*$got;
-        percentage_diff(got, expected);
-        if expected != got {
-            panic!(
-                "
-printed outputs differ!
-expected:
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-{}
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-got:
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-{}
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-diff:
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-",
-                expected, got
-            );
-        }
-        
-    };
-}
-
-#[macro_export]
-macro_rules! eqnice_repr {
-    ($expected:expr, $got:expr) => {
-        let expected = &*$expected;
-        let got = &*$got;
-        if expected != got {
-            panic!(
-                "
-printed outputs differ!
-expected:
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-{:?}
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-got:
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-{:?}
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-",
-                expected, got
-            );
-        }
-    };
-}
-
 pub fn percentage_diff(got: &str, expected: &str) -> (f64, String) {
     let mut t = term::stdout().unwrap();
-    let Changeset { diffs, .. } = Changeset::new(got, expected, "");
+    let Changeset { diffs, .. } = Changeset::new(got.trim(), expected.trim(), "");
     let mut len_same:usize = 0;
     let mut len_rem:usize = 0;
     let mut outdiff:String = String::new();
@@ -96,9 +29,9 @@ pub fn percentage_diff(got: &str, expected: &str) -> (f64, String) {
     } 
     t.fg(term::color::CYAN).unwrap();
     let total = len_same+len_rem;
-    let percentage:f64 = len_same as f64 / len_rem as f64 ;
+    let percentage:f64 = len_same as f64 / total as f64 ;
 
-    writeln!(t, "%{} ({}/{})", percentage,len_same,total).expect("failed to print line");
+    //writeln!(t, "%{} ({}/{})", percentage*100.0,len_same,total).expect("failed to print line");
     t.reset().unwrap();
     t.flush().unwrap();
 
@@ -171,12 +104,13 @@ impl TestCommand {
         let o = self.cmd.output().unwrap();
         if o.status.success() {
             panic!(
-                "\n\n===== {:?} =====\n\
+                "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\
+                \n===== {:?} =====\n\
                  command succeeded but expected failure!\
-                 \n\ncwd: {}\
-                 \n\nstatus: {}\
-                 \n\nstdout: {}\n\nstderr: {}\
-                 \n\n=====\n",
+                 \ncwd: {}\
+                 \nstatus: {}\
+                 \nstdout: {}\n\nstderr: {}\
+                 \n=====\n",
                 self.cmd,
                 self.dir,
                 o.status,
@@ -189,15 +123,20 @@ impl TestCommand {
     /// Runs the command and asserts that its exit code matches expected exit
     /// code.
     pub fn assert_exit_code(&mut self, expected_code: i32) {
-        let code = self.cmd.output().unwrap().status.code().unwrap();
+        let o = self.cmd.output().unwrap();
+        let code = o.status.code().unwrap();
         assert_eq!(
             expected_code, code,
-            "\n\n===== {:?} =====\n\
+            "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\
+            \n===== {:?} =====\n\
              expected exit code did not match\
-             \n\nexpected: {}\
-             \n\nfound: {}\
-             \n\n=====\n",
-            self.cmd, expected_code, code
+             \nexpected: {}\
+             \nfound: {}\
+             \nstdout: {}\n\nstderr: {}\
+             \n=====\n",
+            self.cmd, expected_code, code,
+            String::from_utf8_lossy(&o.stdout),
+            String::from_utf8_lossy(&o.stderr)
         );
     }
 
@@ -206,12 +145,13 @@ impl TestCommand {
         let o = self.cmd.output().unwrap();
         if o.status.success() || o.stderr.is_empty() {
             panic!(
-                "\n\n===== {:?} =====\n\
+                "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\
+                \n===== {:?} =====\n\
                  command succeeded but expected failure!\
-                 \n\ncwd: {}\
-                 \n\nstatus: {}\
-                 \n\nstdout: {}\n\nstderr: {}\
-                 \n\n=====\n",
+                 \ncwd: {}\
+                 \nstatus: {}\
+                 \nstdout: {}\n\nstderr: {}\
+                 \n=====\n",
                 self.cmd,
                 self.dir,
                 o.status,
@@ -227,14 +167,14 @@ impl TestCommand {
         let (perc_diff, out) = percentage_diff(&stdout,&expected);
         if target_threshold > perc_diff {
              panic!(
-                "\n\n===== {:?} =====\n\
+                "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\
+                \n===== {:?} =====\n\
                  only {} matched expected output, required {}!\
-                 \n\ncwd: {}\
-                 \n\nstatus: {}\
-                 \n\nstdout: {}\n\nstderr: {}\
-                 \n\ndiff:{}\n\
-                 \n\n
-                 \n\n=====\n",
+                 \ncwd: {}\
+                 \nstatus: {}\
+                 \nstdout: {}\nstderr: {}\
+                 \ndiff:\n{}\n\
+                 \n=====\n",
                 self.cmd,
                 perc_diff,
                 target_threshold,
@@ -257,15 +197,15 @@ impl TestCommand {
             };
 
             panic!(
-                "\n\n==========\n\
+                "\n==========\n\
                  command failed but expected success!\
                  {}\
-                 \n\ncommand: {:?}\
+                 \ncommand: {:?}\
                  \ncwd: {}\
-                 \n\nstatus: {}\
-                 \n\nstdout: {}\
-                 \n\nstderr: {}\
-                 \n\n==========\n",
+                 \nstatus: {}\
+                 \nstdout: {}\
+                 \nstderr: {}\
+                 \n==========\n",
                 suggest,
                 self.cmd,
                 self.dir,

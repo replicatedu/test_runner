@@ -51,37 +51,58 @@ fn {in_name}(){{
 }
 
 //generates a test stub for the test string
-fn stdout_test_stub()->String{
+fn expect_stdout_test_stub()->String{
     "
     let stdout = cmd.stdout();
-    eqnice!(expected,stdout.trim());
+    cmd.expect_output_threshold(1.00,expected.trim());
     ".to_string()
 } 
 
 //generates a test stub for the threshold test
-fn threshold_test_stub(threshold:f64)->String{
+fn stdout_threshold_test_stub(threshold:f64)->String{
     format!("
-    cmd.expect_output_threshold({},expected);
+    cmd.expect_output_threshold({},expected.trim());
     ",threshold).to_string()
 } 
 
+//generates a test stub for an error test
+fn non_empty_stderr_test_stub()->String{
+    "
+    cmd.assert_non_empty_stderr();
+    ".to_string()
+} 
+
+//generates a test stub to get a certain exit code
+fn assert_exit_code_test_stub(exit_code:i64)->String{
+    "
+    cmd.assert_exit_code();
+    ".to_string()
+}
+
+
 fn main() {
     //get the environmental variable for the test directory
-    // let folder = env::var("REPLICATED_EDU_TEST_DIR")
-    //     .expect("set the env variable for the REPLICATED_EDU_TEST_DIR to the test directory");
-    // println!("{:?}", folder);
+    //in powershell: $env:REPLICATED_EDU_TEST_FILE = "./example/test.toml"
+    let folder = env::var("REPLICATED_EDU_TEST_FILE")
+        .expect("set the env variable for the REPLICATED_EDU_TEST_DIR to the test directory: 
+                 Powershell: $env:REPLICATED_EDU_TEST_FILE = \"./example/test.toml\"
+                 Linux: set REPLICATED_EDU_TEST_FILE ./example/test.toml\n\n");
     
-    //set the destination directory
+    //set the destination directory for the test executable
     let out_dir = std::env::var("OUT_DIR").unwrap();
     let destination = std::path::Path::new(&out_dir).join("gen_tests.rs");
     let mut f = std::fs::File::create(&destination).unwrap();
     
-    let test_std_out = stdout_test_stub();
+
+    //read the test file and generate the tests
+    
+
+
+    let test_std_out = expect_stdout_test_stub();
     write_test_header(&f);
     
-    write_test_to_file(&f,"test_dir","dir","../","hello2",&test_std_out);
+    write_test_to_file(&f,"test_dir","echo hello work","../","fsadfasdfasdwork",&test_std_out);
     
-    let test_threshold = threshold_test_stub(0.90);
-    write_test_to_file(&f,"test2_dir","echo hello work","../","hello2",&test_threshold);
-    
+    let test_threshold = stdout_threshold_test_stub(0.90);
+    write_test_to_file(&f,"test2_dir","echo hello work","../","asdfasfdsdasdfasd work",&test_threshold);
 }
