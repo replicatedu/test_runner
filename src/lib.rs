@@ -170,6 +170,7 @@ impl TestCommand {
     pub fn expect_output_threshold(&mut self, target_threshold: f64, expected: &str) {
         let o = self.cmd.output().unwrap();
         let stdout = String::from_utf8_lossy(&o.stdout);
+        println!("{}", expected);
         let (perc_diff, out) = percentage_diff(&stdout, &expected);
         if target_threshold > perc_diff {
             panic!(
@@ -299,7 +300,7 @@ pub fn broker_test(test: &Test) {
     match s_slice {
         "test_assert_err" => test_assert_err(test_command),
         "test_assert_exit_code" => test_assert_exit_code(test_command, test),
-        "test_assert_non_empty_stderr" => test_assert_exit_code(test_command,test),
+        "test_assert_non_empty_stderr" => test_assert_non_empty_stderr(test_command),
         "test_expect_output_threshold" => test_expect_output_threshold(test_command, test),
         "test_output_is_expected" => test_output_is_expected(test_command, test),
         _ => panic!("test case unsupported")
@@ -352,7 +353,7 @@ impl Test {
         self.cmd.clone()
     }
     pub fn expected(&self) -> Option<String> {
-        self.test_type.clone()
+        self.expected.clone()
     }
     pub fn points(&self) -> Option<u64> {
         self.points.clone()

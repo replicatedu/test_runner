@@ -5,7 +5,7 @@ test_file_description = "this is a test testfile"
 description = "this is a test to check hello world"
 test_type = "test_assert_err"
 test_directory = "."
-cmd = "echo hello world"
+cmd = "asd world"
 expected = "hello world"
 points = 10
 
@@ -19,19 +19,20 @@ expected = "hello world"
 points = 10
 
 [[test]]
-description = "this is a test to check hello world"
+description = "this is a test check that has a non empty stderr"
 test_type = "test_assert_non_empty_stderr"
 test_directory = "."
-cmd = "echo hello world"
+cmd = "world"
 expected = "hello world"
 points = 10
 
 [[test]]
 description = "this is a test to check hello world"
-test_type = "test_output_is_expected"
+test_type = "test_expect_output_threshold"
 test_directory = "."
 cmd = "echo hello world"
 expected = "hello world"
+target_threshold = 0.75
 points = 10
 
 [[test]]
