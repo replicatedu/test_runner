@@ -107,7 +107,7 @@ impl TestCommand {
         let o = self.cmd.output().unwrap();
         if o.status.success() {
             panic!(
-                "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\
+                "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\
                  \n===== {:?} =====\n\
                  command succeeded but expected failure!\
                  \ncwd: {}\
