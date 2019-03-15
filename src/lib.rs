@@ -1,12 +1,18 @@
-extern crate difference;
-extern crate term;
 
 use std::fs;
-
-use difference::{Changeset, Difference};
 use std::ffi::OsStr;
 use std::path::Path;
 use std::process::{self, Command};
+use std::panic;
+
+extern crate toml;
+
+#[macro_use]
+extern crate serde_derive;
+
+extern crate difference;
+use difference::{Changeset, Difference};
+extern crate term;
 
 //gets a percentage difference of the test
 pub fn percentage_diff(got: &str, expected: &str) -> (f64, String) {
@@ -224,9 +230,6 @@ impl TestCommand {
     }
 }
 
-extern crate toml;
-#[macro_use]
-extern crate serde_derive;
 
 //returns a command setup ready to run the tests
 fn setup_command(test_command: &str, test_directory: String) -> TestCommand {
@@ -359,3 +362,29 @@ impl Test {
         self.points.clone()
     }
 }
+
+pub fn run_test_file(filename: String)->Vec<u64>{
+   let contents = match fs::read_to_string(&filename) {
+        Ok(contents) => contents,
+        Err(_) => panic!("file does not exist"),
+    };
+
+    let decoded: TestDoc = toml::from_str(&contents).unwrap();
+    //println!("{:#?}", decoded);
+    let tests = decoded.test.unwrap();
+    let mut v = Vec::new();
+    for test in tests.iter() {
+        println!("{:?}", test);
+        let result = panic::catch_unwind(|| {
+            broker_test(test);
+        });
+        if result.is_err() {
+            v.push(0);
+        } 
+        if result.is_ok(){
+            v.push(test.points().unwrap());
+        }
+    }
+    v
+}
+ 
