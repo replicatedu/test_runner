@@ -240,7 +240,7 @@ fn setup_command(test_command: &str, test_directory: String) -> TestCommand {
         {
             let mut c = Command::new("sh");
             c.arg("-c");
-            c.arg("test_command");
+            c.arg(test_command);
             c
         }
     };
