@@ -388,3 +388,16 @@ pub fn run_test_file(filename: String)->Vec<u64>{
     v
 }
  
+ #[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    #[test]
+    fn test_example_parsing() {
+        let filename = "example/test.toml";
+        let scores = run_test_file(filename.to_string());
+        for s in scores{
+            assert_ne!(s,0);
+        }
+    }
+}

@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/replicatedu/replicatEdu_lib_skeleton-parser.svg?branch=master)](https://travis-ci.org/replicatedu/replicatEdu_lib_skeleton-parser) [![codecov](https://codecov.io/gh/replicatedu/replicatEdu_lib_skeleton-parser/branch/master/graph/badge.svg)](https://codecov.io/gh/replicatedu/replicatEdu_lib_skeleton-parser)
+[![Build Status](https://travis-ci.org/replicatedu/test_runner.svg?branch=master)](https://travis-ci.org/replicatedu/test_runner) [![codecov](https://codecov.io/gh/replicatedu/test_runner/branch/master/graph/badge.svg)](https://codecov.io/gh/replicatedu/test_runner)
 
 [![Open in Gitpod](http://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io#https://github.com/replicatedu/test_runner/)
 
