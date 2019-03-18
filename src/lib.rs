@@ -296,10 +296,21 @@ fn test_output_is_expected(mut tester: TestCommand, test_config: &Test) {
     );
 }
 
-pub fn broker_test(test: &Test) {
+
+use path_abs::{PathDir, PathFile};
+
+
+
+pub fn broker_test(test: &Test, testdir:&str) {
     let s = test.test_type().unwrap();
     let s_slice: &str = &s[..];
-    let mut test_command = setup_command(&test.cmd().unwrap(), test.test_directory().unwrap());
+    println!("{}",testdir.to_string());
+    let lib = PathFile::new(testdir).unwrap();
+    println!("{}",lib.to_string());
+    let src = lib.parent_dir().unwrap().to_string() + "/" + &test.test_directory().unwrap();
+    let test_dir = src;
+    println!("{}  ",test_dir);
+    let mut test_command = setup_command(&test.cmd().unwrap(), test_dir);
     match s_slice {
         "test_assert_err" => test_assert_err(test_command),
         "test_assert_exit_code" => test_assert_exit_code(test_command, test),
@@ -376,7 +387,7 @@ pub fn run_test_file(filename: String)->Vec<u64>{
     for test in tests.iter() {
         println!("{:?}", test);
         let result = panic::catch_unwind(|| {
-            broker_test(test);
+            broker_test(test,&filename);
         });
         if result.is_err() {
             v.push(0);
