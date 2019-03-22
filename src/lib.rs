@@ -28,6 +28,7 @@ pub fn percentage_diff(got: &str, expected: &str) -> (f64, String) {
                 outdiff.push_str(&format!("={}", x));
             }
             Difference::Add(ref x) => {
+                len_rem += x.len();
                 outdiff.push_str(&format!("+{}", x));
             }
             Difference::Rem(ref x) => {
@@ -403,12 +404,29 @@ pub fn run_test_file(filename: String)->Vec<u64>{
 mod tests {
     use super::*;
     use std::fs;
+    // #[test]
+    // fn test_example_parsing() {
+    //     let filename = "example/test.toml";
+    //     let scores = run_test_file(filename.to_string());
+    //     for s in scores{
+    //         assert_ne!(s,0);
+    //     }
+    // }
     #[test]
-    fn test_example_parsing() {
-        let filename = "example/test.toml";
-        let scores = run_test_file(filename.to_string());
-        for s in scores{
-            assert_ne!(s,0);
-        }
+    fn test_percentage_diff() {
+        let str1 = "1234";
+        let str2 = "12345";
+        let (percentage, outdiff) = percentage_diff(str1,str2);
+        println!("{} {}",percentage,outdiff);
+        assert!(percentage == 0.8);
     }
+    #[test]
+    fn test_percentage_diff2() {
+        let str1 = "12345";
+        let str2 = "1234";
+        let (percentage, outdiff) = percentage_diff(str1,str2);
+        println!("{} {}",percentage,outdiff);
+        assert!(percentage == 0.8);
+    }
+
 }
