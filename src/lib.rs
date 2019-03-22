@@ -305,9 +305,9 @@ use path_abs::{PathDir, PathFile};
 pub fn broker_test(test: &Test, testdir:&str) {
     let s = test.test_type().unwrap();
     let s_slice: &str = &s[..];
-    println!("{}",testdir.to_string());
+    //println!("{}",testdir.to_string());
     let lib = PathFile::new(testdir).unwrap();
-    println!("{}",lib.to_string());
+    //println!("{}",lib.to_string());
     let src = lib.parent_dir().unwrap().to_string() + "/" + &test.test_directory().unwrap();
     let test_dir = src;
     println!("{}  ",test_dir);
@@ -382,11 +382,11 @@ pub fn run_test_file(filename: String)->Vec<u64>{
     };
 
     let decoded: TestDoc = toml::from_str(&contents).unwrap();
-    //println!("{:#?}", decoded);
+    println!("{:#?}", decoded);
     let tests = decoded.test.unwrap();
     let mut v = Vec::new();
     for test in tests.iter() {
-        //println!("{:?}", test);
+        println!("{:?}", test);
         let result = panic::catch_unwind(|| {
             broker_test(test,&filename);
         });
