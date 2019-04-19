@@ -382,24 +382,24 @@ pub fn run_test_file(filename: String)->Vec<u64>{
     };
 
     let decoded: TestDoc = toml::from_str(&contents).unwrap();
-    println!("{:#?}", decoded);
+    //println!("{:#?}", decoded);
     let tests = decoded.test.unwrap();
     let mut v = Vec::new();
     for test in tests.iter() {
-        println!("{:?}", test);
+        //println!("{:?}", test);
         let result = panic::catch_unwind(|| {
             broker_test(test,&filename);
         });
         if result.is_err() {
             v.push(0);
-        } 
+        }
         if result.is_ok(){
             v.push(test.points().unwrap());
         }
     }
     v
 }
- 
+
  #[cfg(test)]
 mod tests {
     use super::*;
