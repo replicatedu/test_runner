@@ -2,6 +2,30 @@ use std::env;
 use test_runner::{TestDoc, run_test_file};
 use walkdir::{DirEntry, WalkDir};
 use std::str;
+
+use std::fs::OpenOptions;
+use std::fs;
+use std::io::Write;
+
+
+pub fn write_file(filepath: &str, contents: &str) {
+    match OpenOptions::new()
+        .create(true)
+        .write(true)
+        .append(true)
+        .open(filepath)
+    {
+        Ok(ref mut file) => {
+            file.set_len(0);
+            writeln!(file, "{}", contents).unwrap();
+        }
+        Err(err) => {
+            panic!("Failed to open log file: {}", err);
+        }
+    }
+}
+
+
 pub fn should_ignore(entry: &DirEntry) -> bool {
     entry
         .file_name()
@@ -35,8 +59,11 @@ pub fn run_tests(test_files:Vec<String>) ->Vec<Vec<u64>>{
 fn main() {
     let args: Vec<String> = env::args().collect();
     let test_filenames = &args[1];
+    let outfile_scores = &args[2];
     let test_files = find_test_files(test_filenames,".");
     dbg!(&test_files);
     let scores = run_tests(test_files);
-    dbg!(scores);
+    dbg!(&scores);
+
+    write_file(outfile_scores, &format!("{:?}",scores));
 }

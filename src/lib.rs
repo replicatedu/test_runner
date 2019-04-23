@@ -386,16 +386,19 @@ pub fn run_test_file(filename: String)->Vec<u64>{
     let tests = decoded.test.unwrap();
     let mut v = Vec::new();
     for test in tests.iter() {
-        //println!("{:?}", test);
+        println!("{:?}", test);
         let result = panic::catch_unwind(|| {
             broker_test(test,&filename);
         });
         if result.is_err() {
+            println!("SCORE: {}", 0);
             v.push(0);
         }
         if result.is_ok(){
             v.push(test.points().unwrap());
+            println!("SCORE: {}",test.points().unwrap() );
         }
+        
     }
     v
 }
